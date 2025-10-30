@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { MapPin, Bed, Bath, Square, Calendar, ArrowLeft, Share2, Heart, Phone, Mail, Home } from "lucide-react";
+import { MapPin, Bed, Bath, Square, ArrowLeft, Share2, Heart, Phone, Mail, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,9 +8,14 @@ import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import property1 from "@/assets/property-1.jpg";
+import interior1 from "@/assets/property-interior-1.jpg";
+import interior2 from "@/assets/property-interior-2.jpg";
+import interior3 from "@/assets/property-interior-3.jpg";
+import interior4 from "@/assets/property-interior-4.jpg";
 
 const PropertyDetail = () => {
   const { id } = useParams();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Mock data - in a real app, this would be fetched based on the ID
   const property = {
@@ -25,8 +31,8 @@ const PropertyDetail = () => {
     floor: "3° piano",
     condition: "Ottimo",
     year: 2018,
-    image: property1,
-    description: `Splendido appartamento completamente ristrutturato nel cuore del centro storico di Milano. 
+    images: [property1, interior1, interior2, interior3, interior4],
+    description: `Splendido appartamento completamente ristrutturato nel cuore del centro storico di Milano.
     L'immobile si presenta in condizioni impeccabili con finiture di alta qualità e materiali ricercati.
     
     La proprietà è composta da un ampio soggiorno con cucina a vista, tre camere da letto, di cui una con bagno en-suite,
@@ -48,6 +54,14 @@ const PropertyDetail = () => {
     ]
   };
 
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+  };
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -65,12 +79,36 @@ const PropertyDetail = () => {
 
         {/* Image Gallery */}
         <div className="container mx-auto px-4 mb-8">
-          <div className="relative rounded-xl overflow-hidden">
+          <div className="relative rounded-xl overflow-hidden group">
             <img
-              src={property.image}
-              alt={property.title}
-              className="w-full h-[500px] object-cover"
+              src={property.images[currentImageIndex]}
+              alt={`${property.title} - Foto ${currentImageIndex + 1}`}
+              className="w-full h-[500px] object-cover transition-opacity duration-300"
             />
+            
+            {/* Navigation Buttons */}
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={prevImage}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={nextImage}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+
+            {/* Image Counter */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
+              {currentImageIndex + 1} / {property.images.length}
+            </div>
+
             <div className="absolute top-4 left-4 flex gap-2">
               <Badge className="bg-accent text-accent-foreground text-base px-4 py-2">
                 {property.type}
@@ -80,13 +118,34 @@ const PropertyDetail = () => {
               </Badge>
             </div>
             <div className="absolute top-4 right-4 flex gap-2">
-              <Button size="icon" variant="secondary" className="rounded-full">
+              <Button size="icon" variant="secondary" className="rounded-full hover:scale-110 transition-transform">
                 <Heart className="w-5 h-5" />
               </Button>
-              <Button size="icon" variant="secondary" className="rounded-full">
+              <Button size="icon" variant="secondary" className="rounded-full hover:scale-110 transition-transform">
                 <Share2 className="w-5 h-5" />
               </Button>
             </div>
+          </div>
+
+          {/* Thumbnail Gallery */}
+          <div className="grid grid-cols-5 gap-2 mt-4">
+            {property.images.map((img, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentImageIndex(index)}
+                className={`relative h-20 rounded-lg overflow-hidden transition-all ${
+                  currentImageIndex === index 
+                    ? "ring-2 ring-accent scale-105" 
+                    : "opacity-70 hover:opacity-100"
+                }`}
+              >
+                <img
+                  src={img}
+                  alt={`Thumbnail ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
           </div>
         </div>
 
@@ -211,52 +270,68 @@ const PropertyDetail = () => {
               {/* Contact Card */}
               <Card className="sticky top-28">
                 <CardContent className="p-6 space-y-4">
-                  <h3 className="text-xl font-bold">Richiedi Informazioni</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-xl font-bold mb-2">Richiedi Informazioni</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
                     Compila il form o contattaci direttamente
                   </p>
                   
-                  <div className="space-y-3">
-                    <Button className="w-full bg-gradient-to-r from-accent to-accent/90" size="lg">
+                  <div className="space-y-3 mb-6">
+                    <Button className="w-full bg-gradient-to-r from-accent to-accent/90 hover:shadow-lg transition-shadow" size="lg">
                       <Phone className="w-4 h-4 mr-2" />
                       Chiama Ora
                     </Button>
                     
-                    <Button variant="outline" className="w-full" size="lg">
+                    <Button variant="outline" className="w-full hover:bg-accent/10" size="lg">
                       <Mail className="w-4 h-4 mr-2" />
                       Invia Email
                     </Button>
                   </div>
 
-                  <Separator />
+                  <Separator className="my-6" />
 
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      placeholder="Nome e Cognome"
-                      className="w-full px-4 py-2 rounded-lg border border-input bg-background"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      className="w-full px-4 py-2 rounded-lg border border-input bg-background"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Telefono"
-                      className="w-full px-4 py-2 rounded-lg border border-input bg-background"
-                    />
-                    <textarea
-                      placeholder="Messaggio"
-                      rows={4}
-                      className="w-full px-4 py-2 rounded-lg border border-input bg-background resize-none"
-                    />
-                    <Button className="w-full bg-primary">
+                  <form className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Nome e Cognome</label>
+                      <input
+                        type="text"
+                        placeholder="Mario Rossi"
+                        className="w-full px-4 py-3 rounded-lg border border-input bg-background focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Email</label>
+                      <input
+                        type="email"
+                        placeholder="mario@esempio.it"
+                        className="w-full px-4 py-3 rounded-lg border border-input bg-background focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Telefono</label>
+                      <input
+                        type="tel"
+                        placeholder="+39 333 123 4567"
+                        className="w-full px-4 py-3 rounded-lg border border-input bg-background focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Messaggio</label>
+                      <textarea
+                        placeholder="Mi interesserebbe ricevere maggiori informazioni su questo immobile..."
+                        rows={4}
+                        className="w-full px-4 py-3 rounded-lg border border-input bg-background resize-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 transition-colors">
                       Invia Richiesta
                     </Button>
-                  </div>
+                  </form>
 
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-xs text-muted-foreground text-center mt-4">
                     Cliccando su "Invia" accetti la nostra Privacy Policy
                   </p>
                 </CardContent>

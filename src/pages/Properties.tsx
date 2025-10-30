@@ -96,10 +96,10 @@ const Properties = () => {
       </section>
 
       {/* Filters */}
-      <section className="py-8 bg-secondary border-b border-border sticky top-20 z-40">
+      <section className="py-6 bg-background/95 backdrop-blur-sm border-b border-border sticky top-20 z-40 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
               <Select>
                 <SelectTrigger>
                   <SelectValue placeholder="Tipo contratto" />
@@ -137,16 +137,16 @@ const Properties = () => {
               </Select>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button 
                 variant="outline" 
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex-1 lg:flex-none"
+                className="flex-1 lg:flex-none hover:bg-accent/10 transition-colors"
               >
                 <SlidersHorizontal className="w-4 h-4 mr-2" />
                 Più Filtri
               </Button>
-              <Button className="flex-1 lg:flex-none bg-gradient-to-r from-accent to-accent/90">
+              <Button className="flex-1 lg:flex-none bg-gradient-to-r from-accent to-accent/90 hover:shadow-lg transition-shadow">
                 <Search className="w-4 h-4 mr-2" />
                 Cerca
               </Button>
@@ -154,8 +154,9 @@ const Properties = () => {
           </div>
           
           {showFilters && (
-            <Card className="mt-4 animate-fade-in">
+            <Card className="mt-4 animate-fade-in shadow-lg">
               <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Filtri Avanzati</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Select>
                     <SelectTrigger>
@@ -199,14 +200,17 @@ const Properties = () => {
       </section>
 
       {/* Results */}
-      <section className="py-12 bg-background">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <p className="text-muted-foreground">
-              Trovati <span className="font-semibold text-foreground">{properties.length} immobili</span>
-            </p>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Immobili Disponibili</h2>
+              <p className="text-muted-foreground">
+                Trovati <span className="font-semibold text-accent">{properties.length} immobili</span> corrispondenti ai tuoi criteri
+              </p>
+            </div>
             <Select defaultValue="recent">
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full md:w-56">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -225,13 +229,13 @@ const Properties = () => {
           </div>
           
           {/* Pagination */}
-          <div className="flex justify-center mt-12">
+          <div className="flex justify-center mt-16">
             <div className="flex gap-2">
-              <Button variant="outline" disabled>Precedente</Button>
-              <Button variant="default" className="bg-accent">1</Button>
-              <Button variant="outline">2</Button>
-              <Button variant="outline">3</Button>
-              <Button variant="outline">Successivo</Button>
+              <Button variant="outline" disabled className="hover:bg-accent/10">Precedente</Button>
+              <Button variant="default" className="bg-accent hover:bg-accent/90">1</Button>
+              <Button variant="outline" className="hover:bg-accent/10">2</Button>
+              <Button variant="outline" className="hover:bg-accent/10">3</Button>
+              <Button variant="outline" className="hover:bg-accent/10">Successivo</Button>
             </div>
           </div>
         </div>
