@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Home as HomeIcon } from "lucide-react";
+import { Menu, X, Home as HomeIcon, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user, isAdmin, signOut } = useAuth();
 
   const navLinks = [
     { path: "/", label: "Home" },
@@ -17,15 +19,14 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
+    <nav className="sticky top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <HomeIcon className="w-8 h-8 text-accent transition-transform group-hover:scale-110" />
             <div>
-              <h1 className="text-2xl font-bold text-primary">Casa Bella</h1>
-              <p className="text-xs text-muted-foreground">Immobiliare</p>
+              <h1 className="text-2xl font-bold text-primary">2D Sviluppo Immobiliare</h1>
             </div>
           </Link>
 
@@ -45,9 +46,29 @@ const Navbar = () => {
                 )}
               </Link>
             ))}
-            <Button asChild variant="default" className="bg-gradient-to-r from-accent to-accent/90 hover:shadow-lg transition-all">
-              <Link to="/contatti">Contattaci</Link>
-            </Button>
+            {user && isAdmin && (
+              <Link
+                to="/dashboard"
+                className={`text-sm font-medium transition-colors hover:text-accent relative ${
+                  isActive("/dashboard") ? "text-accent" : "text-foreground"
+                }`}
+              >
+                Dashboard
+                {isActive("/dashboard") && (
+                  <span className="absolute -bottom-6 left-0 right-0 h-0.5 bg-accent" />
+                )}
+              </Link>
+            )}
+            {user ? (
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Esci
+              </Button>
+            ) : (
+              <Button asChild size="sm">
+                <Link to="/login">Accedi</Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -75,11 +96,32 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
-              <Button asChild className="bg-gradient-to-r from-accent to-accent/90 mx-4">
-                <Link to="/contatti" onClick={() => setIsOpen(false)}>
-                  Contattaci
+              {user && isAdmin && (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className={`text-base font-medium transition-colors hover:text-accent px-4 py-2 rounded-lg ${
+                    isActive("/dashboard") ? "text-accent bg-accent/10" : "text-foreground"
+                  }`}
+                >
+                  Dashboard
                 </Link>
-              </Button>
+              )}
+              {user ? (
+                <button
+                  onClick={() => {
+                    signOut();
+                    setIsOpen(false);
+                  }}
+                  className="text-base font-medium text-foreground hover:text-accent px-4 py-2 rounded-lg text-left"
+                >
+                  Esci
+                </button>
+              ) : (
+                <Link to="/login" onClick={() => setIsOpen(false)}>
+                  <Button className="mx-4 w-auto">Accedi</Button>
+                </Link>
+              )}
             </div>
           </div>
         )}

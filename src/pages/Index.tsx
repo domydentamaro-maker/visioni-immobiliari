@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Home, Award, Users, ArrowRight, Star, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,12 +8,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
+import PropertyMap from "@/components/PropertyMap";
 import heroImage from "@/assets/hero-home.jpg";
 import property1 from "@/assets/property-1.jpg";
 import property2 from "@/assets/property-2.jpg";
 import property3 from "@/assets/property-3.jpg";
 
 const Index = () => {
+  useEffect(() => {
+    // Track page view
+    if (window.dataLayer) {
+      window.dataLayer.push({
+        event: 'pageview',
+        page: '/',
+      });
+    }
+  }, []);
+
   const featuredProperties = [
     {
       id: 1,
@@ -57,7 +69,7 @@ const Index = () => {
     },
     {
       name: "Laura Bianchi",
-      text: "Servizio impeccabile dall'inizio alla fine. Consiglio Casa Bella a chiunque cerchi un'agenzia seria e affidabile.",
+      text: "Servizio impeccabile dall'inizio alla fine. Consiglio 2D Sviluppo a chiunque cerchi un'agenzia seria e affidabile.",
       rating: 5
     },
     {
@@ -72,7 +84,7 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden mt-20">
         <div className="absolute inset-0">
           <img
             src={heroImage}
@@ -120,9 +132,11 @@ const Index = () => {
                     </SelectContent>
                   </Select>
                   
-                  <Button className="w-full bg-gradient-to-r from-accent to-accent/90 hover:shadow-lg">
-                    <Search className="w-4 h-4 mr-2" />
-                    Cerca
+                  <Button asChild className="w-full bg-gradient-to-r from-accent to-accent/90 hover:shadow-lg">
+                    <Link to="/proprieta">
+                      <Search className="w-4 h-4 mr-2" />
+                      Cerca
+                    </Link>
                   </Button>
                 </div>
               </CardContent>
@@ -158,6 +172,19 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Map Section */}
+      <section className="py-20 px-4 bg-gradient-subtle">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-display font-bold mb-4">Esplora gli Immobili sulla Mappa</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Trova la tua casa ideale visualizzando tutti i nostri immobili sulla mappa interattiva
+            </p>
+          </div>
+          <PropertyMap />
+        </div>
+      </section>
+
       {/* About Section */}
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4">
@@ -165,7 +192,7 @@ const Index = () => {
             <div>
               <h2 className="text-4xl font-bold mb-6">Chi Siamo</h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                Casa Bella è un'agenzia immobiliare con oltre 25 anni di esperienza nel mercato italiano. 
+                2D Sviluppo Immobiliare è un'agenzia immobiliare con esperienza nel mercato italiano. 
                 La nostra missione è aiutare le persone a trovare la casa perfetta, offrendo un servizio 
                 personalizzato e professionale in ogni fase della transazione.
               </p>

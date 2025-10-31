@@ -3,7 +3,7 @@ import { Home as HomeIcon, Mail, Phone, MapPin, Facebook, Instagram, Linkedin } 
 
 const Footer = () => {
   return (
-    <footer className="bg-primary text-primary-foreground">
+    <footer className="bg-primary text-primary-foreground relative">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
@@ -11,13 +11,11 @@ const Footer = () => {
             <div className="flex items-center gap-2 mb-4">
               <HomeIcon className="w-8 h-8 text-accent" />
               <div>
-                <h3 className="text-xl font-bold">Casa Bella</h3>
-                <p className="text-sm opacity-80">Immobiliare</p>
+                <h3 className="text-xl font-bold">2D Sviluppo Immobiliare</h3>
               </div>
             </div>
             <p className="text-sm opacity-80 leading-relaxed">
-              La tua agenzia di fiducia per trovare la casa dei tuoi sogni. 
-              Professionalità ed esperienza al tuo servizio dal 1995.
+              La tua agenzia di fiducia per trovare la casa dei tuoi sogni.
             </p>
           </div>
 
@@ -76,8 +74,8 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2 text-sm opacity-80">
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <a href="mailto:info@casabella.it" className="hover:text-accent transition-colors">
-                  info@casabella.it
+                <a href="mailto:info@2dsviluppo.it" className="hover:text-accent transition-colors">
+                  info@2dsviluppo.it
                 </a>
               </li>
             </ul>
@@ -96,13 +94,18 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-primary-foreground/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm opacity-80">
-          <p>&copy; 2025 Casa Bella Immobiliare. Tutti i diritti riservati.</p>
+          <p>&copy; 2025 2D Sviluppo Immobiliare. Tutti i diritti riservati.</p>
           <div className="flex gap-4">
             <Link to="#" className="hover:text-accent transition-colors">Privacy Policy</Link>
             <Link to="#" className="hover:text-accent transition-colors">Cookie Policy</Link>
             <Link to="#" className="hover:text-accent transition-colors">Note Legali</Link>
           </div>
         </div>
+      </div>
+      
+      {/* Watermark logo bottom right */}
+      <div className="absolute bottom-4 right-4 text-xs opacity-10 select-none font-semibold">
+        2D Sviluppo
       </div>
     </footer>
   );
