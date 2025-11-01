@@ -20,7 +20,7 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 left-0 right-0 z-50 bg-transparent border-b border-border/20 shadow-sm">
+    <nav className="sticky top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/20 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -28,7 +28,7 @@ const Navbar = () => {
             <img 
               src={logo} 
               alt="2D Sviluppo Immobiliare" 
-              className="h-12 w-auto transition-transform group-hover:scale-105"
+              className="h-16 md:h-20 w-auto transition-transform group-hover:scale-105"
             />
           </Link>
 
