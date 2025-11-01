@@ -20,7 +20,7 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/20 shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -39,7 +39,7 @@ const Navbar = () => {
                 key={link.path}
                 to={link.path}
                 className={`text-sm font-medium transition-colors hover:text-accent relative ${
-                  isActive(link.path) ? "text-accent" : "text-foreground"
+                  isActive(link.path) ? "text-accent" : "text-white"
                 }`}
               >
                 {link.label}
@@ -52,7 +52,7 @@ const Navbar = () => {
               <Link
                 to="/dashboard"
                 className={`text-sm font-medium transition-colors hover:text-accent relative ${
-                  isActive("/dashboard") ? "text-accent" : "text-foreground"
+                  isActive("/dashboard") ? "text-accent" : "text-white"
                 }`}
               >
                 Dashboard
@@ -62,12 +62,12 @@ const Navbar = () => {
               </Link>
             )}
             {user ? (
-              <Button variant="outline" size="sm" onClick={signOut}>
+              <Button variant="outline" size="sm" onClick={signOut} className="border-white/30 text-white hover:bg-white/10">
                 <LogOut className="mr-2 h-4 w-4" />
                 Esci
               </Button>
             ) : (
-              <Button asChild size="sm">
+              <Button asChild size="sm" className="bg-white/20 text-white hover:bg-white/30 border-white/30">
                 <Link to="/login">Accedi</Link>
               </Button>
             )}
@@ -76,7 +76,7 @@ const Navbar = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 text-foreground hover:text-accent transition-colors"
+            className="md:hidden p-2 text-white hover:text-accent transition-colors"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -84,7 +84,7 @@ const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden py-4 animate-fade-in">
+          <div className="md:hidden py-4 animate-fade-in bg-background/95 backdrop-blur-md">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 <Link
