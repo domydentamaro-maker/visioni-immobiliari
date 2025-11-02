@@ -28,7 +28,7 @@ const Navbar = () => {
             <img 
               src={logo} 
               alt="2D Sviluppo Immobiliare" 
-              className="h-16 md:h-20 w-auto transition-transform group-hover:scale-105"
+              className="h-24 md:h-28 w-auto transition-transform group-hover:scale-105"
             />
           </Link>
 

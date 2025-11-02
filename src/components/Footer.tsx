@@ -5,8 +5,8 @@ const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground relative">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Brand */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Brand & Links */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <HomeIcon className="w-8 h-8 text-accent" />
@@ -14,13 +14,9 @@ const Footer = () => {
                 <h3 className="text-xl font-bold">2D Sviluppo Immobiliare</h3>
               </div>
             </div>
-            <p className="text-sm opacity-80 leading-relaxed">
+            <p className="text-sm opacity-80 leading-relaxed mb-6">
               La tua agenzia di fiducia per trovare la casa dei tuoi sogni.
             </p>
-          </div>
-
-          {/* Links */}
-          <div>
             <h4 className="font-semibold mb-4">Menu</h4>
             <ul className="space-y-2">
               <li>
