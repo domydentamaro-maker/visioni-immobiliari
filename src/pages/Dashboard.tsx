@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,8 +25,6 @@ interface Property {
 }
 
 export default function Dashboard() {
-  const { user, isAdmin, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [images, setImages] = useState<File[]>([]);
@@ -44,16 +40,8 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      navigate('/login');
-    }
-  }, [user, isAdmin, authLoading, navigate]);
-
-  useEffect(() => {
-    if (user && isAdmin) {
-      loadProperties();
-    }
-  }, [user, isAdmin]);
+    loadProperties();
+  }, []);
 
   const loadProperties = async () => {
     const { data, error } = await supabase
@@ -93,7 +81,6 @@ export default function Dashboard() {
           floor: formData.floor ? parseInt(formData.floor) : null,
           latitude: parseFloat(formData.latitude),
           longitude: parseFloat(formData.longitude),
-          created_by: user?.id,
         })
         .select()
         .single();
@@ -174,14 +161,6 @@ export default function Dashboard() {
       toast.error(error.message || 'Errore durante l\'eliminazione');
     }
   };
-
-  if (authLoading || !user || !isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
