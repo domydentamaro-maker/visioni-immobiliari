@@ -2,9 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 
 interface Property {
   id: string;
@@ -20,18 +17,17 @@ export default function PropertyMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [mapboxToken, setMapboxToken] = useState('');
-  const [tokenSaved, setTokenSaved] = useState(false);
+  const mapboxToken = 'pk.eyJ1IjoiMmRzdmlsdXBwb2ltbW9iaWxpYXJlIiwiYSI6ImNtZ3BkaDQ3bzB1dzAya3IyYTFjd291MHIifQ.PIdQe-j8rZIHBF5ppyaHqA';
 
   useEffect(() => {
     loadProperties();
   }, []);
 
   useEffect(() => {
-    if (tokenSaved && mapboxToken && mapContainer.current && properties.length > 0) {
+    if (mapboxToken && mapContainer.current && properties.length > 0) {
       initializeMap();
     }
-  }, [tokenSaved, mapboxToken, properties]);
+  }, [mapboxToken, properties]);
 
   const loadProperties = async () => {
     const { data, error } = await supabase
@@ -114,54 +110,6 @@ export default function PropertyMap() {
       map.current.fitBounds(bounds, { padding: 50 });
     }
   };
-
-  const handleSaveToken = () => {
-    if (!mapboxToken.trim()) {
-      toast.error('Inserisci un token Mapbox valido');
-      return;
-    }
-    setTokenSaved(true);
-    toast.success('Token salvato! Mappa in caricamento...');
-  };
-
-  if (!tokenSaved) {
-    return (
-      <div className="bg-background border rounded-lg p-8 text-center">
-        <h3 className="text-xl font-semibold mb-4">Configura Mappa Interattiva</h3>
-        <p className="text-muted-foreground mb-6">
-          Per visualizzare la mappa degli immobili, inserisci il tuo token pubblico Mapbox.
-          <br />
-          Puoi ottenerlo gratuitamente su{' '}
-          <a
-            href="https://mapbox.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            mapbox.com
-          </a>
-        </p>
-        <div className="max-w-md mx-auto space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="mapbox-token">Token Pubblico Mapbox</Label>
-            <Input
-              id="mapbox-token"
-              type="text"
-              placeholder="pk.eyJ1..."
-              value={mapboxToken}
-              onChange={(e) => setMapboxToken(e.target.value)}
-            />
-          </div>
-          <button
-            onClick={handleSaveToken}
-            className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Salva e Carica Mappa
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-full h-[500px] rounded-lg overflow-hidden shadow-elegant">
