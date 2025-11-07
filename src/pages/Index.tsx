@@ -82,9 +82,16 @@ const Index = () => {
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Visioni Immobiliari
             </h1>
-            <p className="text-xl mb-8 opacity-90 md:text-xl">
+            <p className="text-xl mb-6 opacity-90 md:text-xl">
               Esperienza, professionalità e passione al servizio del tuo futuro
             </p>
+            
+            {/* CTA */}
+            <div className="mb-8">
+              <p className="text-lg mb-4 opacity-95 font-medium">
+                Trova l'immobile perfetto per te in pochi click
+              </p>
+            </div>
             
             {/* Quick Search */}
             <Card className="bg-background/95 backdrop-blur-sm">
