@@ -35,12 +35,8 @@ const Contact = () => {
                   <p className="text-muted-foreground text-sm mb-3">
                     Chiamaci per informazioni immediate
                   </p>
-                  <a href="tel:+390212345678" className="text-accent hover:underline font-medium">
-                    +39 02 1234 5678
-                  </a>
-                  <br />
-                  <a href="tel:+393331234567" className="text-accent hover:underline font-medium">
-                    +39 333 123 4567
+                  <a href="tel:+393408039322" className="text-accent hover:underline font-medium">
+                    340 803 9322
                   </a>
                 </CardContent>
               </Card>
@@ -54,12 +50,8 @@ const Contact = () => {
                   <p className="text-muted-foreground text-sm mb-3">
                     Scrivici per qualsiasi richiesta
                   </p>
-                  <a href="mailto:info@casabella.it" className="text-accent hover:underline font-medium">
-                    info@casabella.it
-                  </a>
-                  <br />
-                  <a href="mailto:vendite@casabella.it" className="text-accent hover:underline font-medium">
-                    vendite@casabella.it
+                  <a href="mailto:info@2dsviluppoimmobiliare.it" className="text-accent hover:underline font-medium">
+                    info@2dsviluppoimmobiliare.it
                   </a>
                 </CardContent>
               </Card>
@@ -74,8 +66,8 @@ const Contact = () => {
                     Vieni a trovarci in ufficio
                   </p>
                   <p className="font-medium">
-                    Via Roma 123<br />
-                    20121 Milano, Italia
+                    Via Domenico Di Venere, 41<br />
+                    Ceglie del Campo - Bari
                   </p>
                 </CardContent>
               </Card>
@@ -203,7 +195,7 @@ const Contact = () => {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Dove Siamo</h2>
             <p className="text-lg text-muted-foreground">
-              Ci trovi nel cuore di Milano, facilmente raggiungibile con i mezzi pubblici
+              Ci trovi a Ceglie del Campo, Bari
             </p>
           </div>
           
@@ -212,8 +204,8 @@ const Contact = () => {
               <div className="w-full h-[500px] bg-muted flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
                   <MapPin className="w-16 h-16 mx-auto mb-4 text-accent" />
-                  <p className="text-xl font-semibold mb-2">Via Roma 123, 20121 Milano</p>
-                  <p className="text-sm">Mappa interattiva</p>
+                  <p className="text-xl font-semibold mb-2">Via Domenico Di Venere, 41</p>
+                  <p className="text-sm">Ceglie del Campo - Bari</p>
                 </div>
               </div>
             </CardContent>

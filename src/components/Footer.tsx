@@ -60,18 +60,18 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-start gap-2 text-sm opacity-80">
                 <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
-                <span>Via Roma 123, 20121 Milano, Italia</span>
+                <span>Via Domenico Di Venere, 41<br />Ceglie del Campo - Bari</span>
               </li>
               <li className="flex items-center gap-2 text-sm opacity-80">
                 <Phone className="w-4 h-4 flex-shrink-0" />
-                <a href="tel:+390212345678" className="hover:text-accent transition-colors">
-                  +39 02 1234 5678
+                <a href="tel:+393408039322" className="hover:text-accent transition-colors">
+                  340 803 9322
                 </a>
               </li>
               <li className="flex items-center gap-2 text-sm opacity-80">
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <a href="mailto:info@2dsviluppo.it" className="hover:text-accent transition-colors">
-                  info@2dsviluppo.it
+                <a href="mailto:info@2dsviluppoimmobiliare.it" className="hover:text-accent transition-colors">
+                  info@2dsviluppoimmobiliare.it
                 </a>
               </li>
             </ul>
