@@ -20,6 +20,8 @@ const Navbar = () => {
   const navLinks = [
     { path: "/", label: "Home" },
     { path: "/proprieta", label: "Immobili" },
+    { path: "/cantieri", label: "Cantieri" },
+    { path: "/investimenti", label: "Investimenti" },
     { path: "/servizi", label: "Servizi" },
     { path: "/contatti", label: "Contatti" },
     { path: "/dashboard", label: "Dashboard" },
