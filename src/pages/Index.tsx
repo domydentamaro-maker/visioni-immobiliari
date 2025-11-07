@@ -97,7 +97,7 @@ const Index = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-2xl text-primary-foreground animate-fade-in">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              Trova la Casa dei Tuoi Sogni
+              Visioni Immobiliari
             </h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90">
               Esperienza, professionalità e passione al servizio del tuo futuro
