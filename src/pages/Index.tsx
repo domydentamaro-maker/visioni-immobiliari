@@ -284,7 +284,7 @@ const Index = () => {
             <Button asChild size="lg" variant="secondary" className="hover:scale-105 transition-transform">
               <Link to="/proprieta">Esplora gli Immobili</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+            <Button asChild size="lg" variant="outline" className="border-2 border-primary-foreground bg-transparent text-primary-foreground hover:bg-primary-foreground hover:text-primary hover:scale-105 transition-all">
               <Link to="/contatti">Contattaci Ora</Link>
             </Button>
           </div>
