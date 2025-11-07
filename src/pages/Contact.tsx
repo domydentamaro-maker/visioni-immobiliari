@@ -201,13 +201,16 @@ const Contact = () => {
           
           <Card className="overflow-hidden shadow-lg">
             <CardContent className="p-0">
-              <div className="w-full h-[500px] bg-muted flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <MapPin className="w-16 h-16 mx-auto mb-4 text-accent" />
-                  <p className="text-xl font-semibold mb-2">Via Domenico Di Venere, 41</p>
-                  <p className="text-sm">Ceglie del Campo - Bari</p>
-                </div>
-              </div>
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3005.7547424324595!2d16.92371!3d41.09831!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1347e8e3e8e3e8e3%3A0x1e3e3e3e3e3e3e3e!2sVia%20Domenico%20Di%20Venere%2C%2041%2C%2070129%20Ceglie%20del%20Campo%20BA!5e0!3m2!1sit!2sit!4v1234567890123!5m2!1sit!2sit"
+                width="100%"
+                height="500"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Mappa dell'ufficio 2D Sviluppo Immobiliare"
+              />
             </CardContent>
           </Card>
         </div>
