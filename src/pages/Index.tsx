@@ -80,7 +80,7 @@ const Index = () => {
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-2xl mx-auto text-center text-primary-foreground animate-fade-in">
+          <div className="max-w-2xl mx-auto text-center text-primary-foreground animate-fade-in mt-24 md:mt-0">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Visioni Immobiliari
             </h1>
