@@ -13,84 +13,67 @@ import heroImage from "@/assets/hero-home.jpg";
 import property1 from "@/assets/property-1.jpg";
 import property2 from "@/assets/property-2.jpg";
 import property3 from "@/assets/property-3.jpg";
-
 const Index = () => {
   useEffect(() => {
     // Track page view
     if (window.dataLayer) {
       window.dataLayer.push({
         event: 'pageview',
-        page: '/',
+        page: '/'
       });
     }
   }, []);
-
-  const featuredProperties = [
-    {
-      id: 1,
-      title: "Appartamento Moderno Centro Città",
-      price: "€450.000",
-      location: "Milano Centro",
-      beds: 3,
-      baths: 2,
-      area: 120,
-      image: property1,
-      type: "Vendita"
-    },
-    {
-      id: 2,
-      title: "Villa Contemporanea con Piscina",
-      price: "€1.200.000",
-      location: "Como",
-      beds: 5,
-      baths: 4,
-      area: 350,
-      image: property2,
-      type: "Vendita"
-    },
-    {
-      id: 3,
-      title: "Attico con Terrazza Panoramica",
-      price: "€2.800/mese",
-      location: "Milano, Porta Nuova",
-      beds: 2,
-      baths: 2,
-      area: 95,
-      image: property3,
-      type: "Affitto"
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: "Marco Rossi",
-      text: "Professionalità e competenza eccezionali. Hanno trovato la casa perfetta per la mia famiglia in tempi record.",
-      rating: 5
-    },
-    {
-      name: "Laura Bianchi",
-      text: "Servizio impeccabile dall'inizio alla fine. Consiglio 2D Sviluppo a chiunque cerchi un'agenzia seria e affidabile.",
-      rating: 5
-    },
-    {
-      name: "Giuseppe Ferrari",
-      text: "Esperienza fantastica! Il team è stato sempre disponibile e attento alle nostre esigenze.",
-      rating: 5
-    }
-  ];
-
-  return (
-    <div className="min-h-screen">
+  const featuredProperties = [{
+    id: 1,
+    title: "Appartamento Moderno Centro Città",
+    price: "€450.000",
+    location: "Milano Centro",
+    beds: 3,
+    baths: 2,
+    area: 120,
+    image: property1,
+    type: "Vendita"
+  }, {
+    id: 2,
+    title: "Villa Contemporanea con Piscina",
+    price: "€1.200.000",
+    location: "Como",
+    beds: 5,
+    baths: 4,
+    area: 350,
+    image: property2,
+    type: "Vendita"
+  }, {
+    id: 3,
+    title: "Attico con Terrazza Panoramica",
+    price: "€2.800/mese",
+    location: "Milano, Porta Nuova",
+    beds: 2,
+    baths: 2,
+    area: 95,
+    image: property3,
+    type: "Affitto"
+  }];
+  const testimonials = [{
+    name: "Marco Rossi",
+    text: "Professionalità e competenza eccezionali. Hanno trovato la casa perfetta per la mia famiglia in tempi record.",
+    rating: 5
+  }, {
+    name: "Laura Bianchi",
+    text: "Servizio impeccabile dall'inizio alla fine. Consiglio 2D Sviluppo a chiunque cerchi un'agenzia seria e affidabile.",
+    rating: 5
+  }, {
+    name: "Giuseppe Ferrari",
+    text: "Esperienza fantastica! Il team è stato sempre disponibile e attento alle nostre esigenze.",
+    rating: 5
+  }];
+  return <div className="min-h-screen">
       <Navbar />
       
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
-          <img
-            src={heroImage}
-            alt="Luxury villa"
-            className="w-full h-full object-cover"
-          />
+          <img src={heroImage} alt="Luxury villa" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-transparent" />
         </div>
         
@@ -99,7 +82,7 @@ const Index = () => {
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Visioni Immobiliari
             </h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">
+            <p className="text-xl mb-8 opacity-90 md:text-xl">
               Esperienza, professionalità e passione al servizio del tuo futuro
             </p>
             
@@ -156,9 +139,7 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {featuredProperties.map((property) => (
-              <PropertyCard key={property.id} {...property} />
-            ))}
+            {featuredProperties.map(property => <PropertyCard key={property.id} {...property} />)}
           </div>
           
           <div className="text-center">
@@ -253,22 +234,18 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+            {testimonials.map((testimonial, index) => <Card key={index} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-8">
                   <Quote className="w-10 h-10 text-accent mb-4" />
                   <div className="flex gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-accent text-accent" />
-                    ))}
+                    {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-accent text-accent" />)}
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed">
                     "{testimonial.text}"
                   </p>
                   <p className="font-semibold">{testimonial.name}</p>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -292,8 +269,6 @@ const Index = () => {
       </section>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
