@@ -11,6 +11,8 @@ import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Cantieri from "./pages/Cantieri";
+import Investimenti from "./pages/Investimenti";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
             <Route path="/proprieta/:id" element={<PropertyDetail />} />
             <Route path="/servizi" element={<Services />} />
             <Route path="/contatti" element={<Contact />} />
+            <Route path="/cantieri" element={<Cantieri />} />
+            <Route path="/investimenti" element={<Investimenti />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

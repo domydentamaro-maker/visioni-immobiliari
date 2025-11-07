@@ -13,6 +13,8 @@ import heroImage from "@/assets/hero-home.jpg";
 import property1 from "@/assets/property-1.jpg";
 import property2 from "@/assets/property-2.jpg";
 import property3 from "@/assets/property-3.jpg";
+import cantieriHero from "@/assets/cantieri-hero.jpg";
+import investimentiHero from "@/assets/investimenti-hero.jpg";
 const Index = () => {
   useEffect(() => {
     // Track page view
@@ -131,6 +133,57 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Cantieri & Investimenti Section */}
+      <section className="py-20 bg-gradient-subtle">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {/* Cantieri Card */}
+            <Link to="/cantieri" className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300">
+              <div className="relative h-[400px]">
+                <img 
+                  src={cantieriHero} 
+                  alt="Cantieri in corso" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-8 text-primary-foreground">
+                  <h3 className="text-3xl font-bold mb-3">Cantieri</h3>
+                  <p className="text-lg opacity-90 mb-4">
+                    Scopri i nostri progetti in costruzione e le prossime realizzazioni
+                  </p>
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <span>Esplora i Cantieri</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Investimenti Card */}
+            <Link to="/investimenti" className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300">
+              <div className="relative h-[400px]">
+                <img 
+                  src={investimentiHero} 
+                  alt="Investimenti immobiliari" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-8 text-primary-foreground">
+                  <h3 className="text-3xl font-bold mb-3">Investimenti</h3>
+                  <p className="text-lg opacity-90 mb-4">
+                    Opportunità di investimento sicure e redditizie nel settore immobiliare
+                  </p>
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <span>Scopri le Opportunità</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
       </section>
