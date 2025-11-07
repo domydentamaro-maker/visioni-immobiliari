@@ -73,14 +73,14 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-end md:items-center justify-center overflow-hidden pb-8 md:pb-0">
         <div className="absolute inset-0">
           <img src={heroImage} alt="Luxury villa" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-transparent" />
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-2xl mx-auto text-center text-primary-foreground animate-fade-in mt-24 md:mt-0">
+          <div className="max-w-2xl mx-auto text-center text-primary-foreground animate-fade-in">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               Visioni Immobiliari
             </h1>
