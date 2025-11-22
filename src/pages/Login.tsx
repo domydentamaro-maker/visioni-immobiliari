@@ -11,10 +11,11 @@ import Footer from '@/components/Footer';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { user, signIn, signUp, isAdmin } = useAuth();
+  const { user, signIn, signUp, isAdmin, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,7 +33,15 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (showResetPassword) {
+        const { error } = await resetPassword(email);
+        if (error) {
+          toast.error(error.message || 'Errore durante il reset della password');
+        } else {
+          toast.success('Email di reset inviata! Controlla la tua casella di posta.');
+          setShowResetPassword(false);
+        }
+      } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
           toast.error(error.message || 'Errore durante il login');
@@ -62,10 +71,12 @@ export default function Login() {
         <Card className="w-full max-w-md shadow-elegant">
           <CardHeader className="space-y-2 text-center">
             <CardTitle className="text-3xl font-display">
-              {isLogin ? 'Accedi' : 'Registrati'}
+              {showResetPassword ? 'Reset Password' : isLogin ? 'Accedi' : 'Registrati'}
             </CardTitle>
             <CardDescription>
-              {isLogin
+              {showResetPassword
+                ? 'Inserisci la tua email per ricevere il link di reset'
+                : isLogin
                 ? 'Inserisci le tue credenziali per accedere'
                 : 'Crea un nuovo account'}
             </CardDescription>
@@ -83,29 +94,47 @@ export default function Login() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
+              {!showResetPassword && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Caricamento...' : isLogin ? 'Accedi' : 'Registrati'}
+                {loading ? 'Caricamento...' : showResetPassword ? 'Invia Email' : isLogin ? 'Accedi' : 'Registrati'}
               </Button>
             </form>
+            {isLogin && !showResetPassword && (
+              <div className="mt-3 text-center text-sm">
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(true)}
+                  className="text-primary hover:underline"
+                >
+                  Password dimenticata?
+                </button>
+              </div>
+            )}
             <div className="mt-4 text-center text-sm">
               <button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => {
+                  setShowResetPassword(false);
+                  setIsLogin(!isLogin);
+                }}
                 className="text-primary hover:underline"
               >
-                {isLogin
+                {showResetPassword
+                  ? 'Torna al login'
+                  : isLogin
                   ? 'Non hai un account? Registrati'
                   : 'Hai già un account? Accedi'}
               </button>
