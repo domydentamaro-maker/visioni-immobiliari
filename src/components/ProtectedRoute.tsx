@@ -14,10 +14,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     if (!loading && !user) {
       navigate('/login');
-    } else if (!loading && user && !isAdmin) {
-      navigate('/');
     }
-  }, [user, isAdmin, loading, navigate]);
+    // Rimosso il controllo isAdmin - tutti gli utenti autenticati possono accedere
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -27,7 +26,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user) {
     return null;
   }
 
