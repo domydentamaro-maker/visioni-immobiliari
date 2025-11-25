@@ -35,7 +35,6 @@ export default function Dashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [previewImageIndex, setPreviewImageIndex] = useState<number>(0);
-  const [isExternalConstruction, setIsExternalConstruction] = useState(false);
   const { user, signOut } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
@@ -89,21 +88,24 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
-      if (isExternalConstruction) {
+      if (formData.external_url && formData.external_url.length > 0) {
         // Insert external construction
         const { error: externalError } = await supabase
           .from('external_constructions')
           .insert({
             title: formData.title,
-            description: formData.description,
+            description: formData.description || '',
             address: formData.address,
             external_url: formData.external_url,
-            image_url: formData.image_url,
-            is_construction: formData.is_construction,
-            is_investment: formData.is_investment,
+            image_url: formData.image_url || null,
+            is_construction: true,
+            is_investment: false,
           });
 
-        if (externalError) throw externalError;
+        if (externalError) {
+          console.error('External construction error:', externalError);
+          throw externalError;
+        }
 
         toast.success('Cantiere esterno aggiunto con successo!');
       } else {
@@ -113,9 +115,9 @@ export default function Dashboard() {
           .insert({
             title: formData.title,
             description: formData.description,
-            price: parseFloat(formData.price),
-            surface_area: parseFloat(formData.surface_area),
-            rooms: parseInt(formData.rooms),
+            price: parseFloat(formData.price) || 0,
+            surface_area: parseFloat(formData.surface_area) || 0,
+            rooms: parseInt(formData.rooms) || 0,
             floor: formData.floor ? parseInt(formData.floor) : null,
             address: formData.address,
             is_construction: formData.is_construction,
@@ -124,7 +126,10 @@ export default function Dashboard() {
           .select()
           .single();
 
-        if (propertyError) throw propertyError;
+        if (propertyError) {
+          console.error('Property error:', propertyError);
+          throw propertyError;
+        }
 
         // Upload images
         if (images.length > 0 && property) {
@@ -159,7 +164,7 @@ export default function Dashboard() {
       // Track event
       if (window.dataLayer) {
         window.dataLayer.push({
-          event: isExternalConstruction ? 'cantiereesternocaricato' : 'immobilecaricato',
+          event: formData.external_url ? 'cantiereesternocaricato' : 'immobilecaricato',
           title: formData.title,
         });
       }
@@ -180,7 +185,6 @@ export default function Dashboard() {
       });
       setImages([]);
       setPreviewImageIndex(0);
-      setIsExternalConstruction(false);
       loadProperties();
     } catch (error: any) {
       toast.error(error.message || 'Errore durante il caricamento');
@@ -258,13 +262,12 @@ export default function Dashboard() {
                       value={formData.external_url}
                       onChange={(e) => {
                         setFormData({ ...formData, external_url: e.target.value });
-                        setIsExternalConstruction(e.target.value.length > 0);
                       }}
                       placeholder="https://live-future-homes.com/borgo-san-nicola"
                     />
                     {formData.external_url && (
                       <p className="text-sm text-muted-foreground">
-                        ✓ Modalità cantiere esterno attiva - solo titolo, descrizione, indirizzo e URL immagine richiesti
+                        ✓ Modalità cantiere esterno attiva - solo titolo e indirizzo richiesti
                       </p>
                     )}
                   </div>
@@ -281,18 +284,18 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Descrizione *</Label>
+                    <Label htmlFor="description">Descrizione {!formData.external_url && '*'}</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      required
+                      required={!formData.external_url}
                       rows={4}
                       placeholder="Descrizione dettagliata dell'immobile..."
                     />
                   </div>
 
-                  {!isExternalConstruction && (
+                  {!formData.external_url && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="price">Prezzo (€) *</Label>
@@ -356,14 +359,13 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  {isExternalConstruction && (
+                  {formData.external_url && (
                     <div className="space-y-2">
-                      <Label htmlFor="image_url">URL Immagine Anteprima *</Label>
+                      <Label htmlFor="image_url">URL Immagine Anteprima (opzionale)</Label>
                       <Input
                         id="image_url"
                         value={formData.image_url}
                         onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                        required={isExternalConstruction}
                         placeholder="https://images.unsplash.com/photo-..."
                       />
                     </div>
@@ -397,7 +399,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {!isExternalConstruction && (
+                  {!formData.external_url && (
                     <div className="space-y-2">
                       <Label htmlFor="images">Immagini</Label>
                       <div className="flex items-center gap-2">
@@ -462,7 +464,7 @@ export default function Dashboard() {
                         Caricamento...
                       </>
                     ) : (
-                      isExternalConstruction ? 'Carica Cantiere Esterno' : 'Carica Immobile'
+                      formData.external_url ? 'Carica Cantiere Esterno' : 'Carica Immobile'
                     )}
                   </Button>
                 </form>

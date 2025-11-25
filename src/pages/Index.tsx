@@ -44,50 +44,54 @@ const Index = () => {
   }, []);
 
   const loadFeaturedProperties = async () => {
-    // Load regular properties
-    const { data: propertiesData, error: propertiesError } = await supabase
-      .from('properties')
-      .select(`
-        id,
-        title,
-        price,
-        surface_area,
-        rooms,
-        floor,
-        description,
-        images:property_images(image_url)
-      `)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(2);
+    try {
+      // Load regular properties
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
+        .select(`
+          id,
+          title,
+          price,
+          surface_area,
+          rooms,
+          floor,
+          description,
+          images:property_images(image_url)
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(2);
 
-    // Load external constructions
-    const { data: externalData, error: externalError } = await supabase
-      .from('external_constructions')
-      .select('id, title, description, external_url, image_url')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1);
+      // Load external constructions
+      const { data: externalData, error: externalError } = await supabase
+        .from('external_constructions')
+        .select('id, title, description, external_url, image_url')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-    const allProperties = [];
+      const allProperties = [];
 
-    if (!propertiesError && propertiesData) {
-      allProperties.push(...propertiesData);
+      if (!propertiesError && propertiesData) {
+        allProperties.push(...propertiesData);
+      }
+
+      if (!externalError && externalData) {
+        // Add external constructions with default values
+        allProperties.push(...externalData.map(ext => ({
+          ...ext,
+          price: 0,
+          surface_area: 0,
+          rooms: 0,
+          floor: '',
+          images: []
+        })));
+      }
+
+      setFeaturedProperties(allProperties.slice(0, 3));
+    } catch (error) {
+      console.error('Error loading featured properties:', error);
     }
-
-    if (!externalError && externalData) {
-      // Add external constructions with default values
-      allProperties.push(...externalData.map(ext => ({
-        ...ext,
-        price: 0,
-        surface_area: 0,
-        rooms: 0,
-        floor: '',
-        images: ext.image_url ? [{ image_url: ext.image_url }] : []
-      })));
-    }
-
-    setFeaturedProperties(allProperties.slice(0, 3));
   };
   const testimonials = [{
     name: "Marco Rossi",
@@ -246,7 +250,7 @@ const Index = () => {
                     <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
                       <div className="relative aspect-video overflow-hidden">
                         <img 
-                          src={property.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'} 
+                          src={property.image_url || property.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'} 
                           alt={property.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -258,9 +262,11 @@ const Index = () => {
                         <h3 className="text-xl font-bold mb-2 group-hover:text-accent transition-colors">
                           {property.title}
                         </h3>
-                        <p className="text-muted-foreground line-clamp-2 mb-4">
-                          {property.description}
-                        </p>
+                        {property.description && (
+                          <p className="text-muted-foreground line-clamp-2 mb-4">
+                            {property.description}
+                          </p>
+                        )}
                         <div className="flex items-center text-accent font-semibold">
                           <span>Visita il sito</span>
                           <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
@@ -278,7 +284,7 @@ const Index = () => {
                   id={property.id}
                   title={property.title}
                   price={`€${property.price.toLocaleString()}`}
-                  location={property.floor}
+                  location={property.floor || ''}
                   beds={property.rooms}
                   baths={2}
                   area={property.surface_area}
