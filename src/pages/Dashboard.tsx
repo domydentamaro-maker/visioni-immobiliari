@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Loader2, Upload, X, Trash2, LogOut, User } from 'lucide-react';
+import { Loader2, Upload, X, Trash2, LogOut, User, MapPin, ExternalLink, Building2, TrendingUp, Eye, EyeOff, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Property {
   id: string;
@@ -30,11 +32,46 @@ interface Property {
   created_at: string;
 }
 
+interface ExternalConstruction {
+  id: string;
+  title: string;
+  description: string;
+  address: string;
+  external_url: string;
+  image_url?: string;
+  created_at: string;
+}
+
+// Geocoding function using Nominatim (free, no API key needed)
+const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+};
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [externalConstructions, setExternalConstructions] = useState<ExternalConstruction[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [previewImageIndex, setPreviewImageIndex] = useState<number>(0);
+  const [geocodingStatus, setGeocodingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [activeTab, setActiveTab] = useState('add');
+  const [filterType, setFilterType] = useState<'all' | 'properties' | 'constructions' | 'investments'>('all');
   const { user, signOut } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
@@ -52,6 +89,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadProperties();
+    loadExternalConstructions();
   }, []);
 
   const loadProperties = async () => {
@@ -64,6 +102,37 @@ export default function Dashboard() {
       setProperties(data);
     }
   };
+
+  const loadExternalConstructions = async () => {
+    const { data, error } = await supabase
+      .from('external_constructions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setExternalConstructions(data);
+    }
+  };
+
+  // Geocode address when it changes
+  const handleGeocodeAddress = useCallback(async () => {
+    if (!formData.address || formData.address.length < 5) {
+      setCoordinates(null);
+      setGeocodingStatus('idle');
+      return;
+    }
+    
+    setGeocodingStatus('loading');
+    const result = await geocodeAddress(formData.address);
+    
+    if (result) {
+      setCoordinates(result);
+      setGeocodingStatus('success');
+    } else {
+      setCoordinates(null);
+      setGeocodingStatus('error');
+    }
+  }, [formData.address]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -109,7 +178,7 @@ export default function Dashboard() {
 
         toast.success('Cantiere esterno aggiunto con successo!');
       } else {
-        // Insert property
+        // Insert property with coordinates
         const { data: property, error: propertyError } = await supabase
           .from('properties')
           .insert({
@@ -120,6 +189,8 @@ export default function Dashboard() {
             rooms: parseInt(formData.rooms) || 0,
             floor: formData.floor ? parseInt(formData.floor) : null,
             address: formData.address,
+            latitude: coordinates?.lat || null,
+            longitude: coordinates?.lng || null,
             is_construction: formData.is_construction,
             is_investment: formData.is_investment,
           })
@@ -185,7 +256,10 @@ export default function Dashboard() {
       });
       setImages([]);
       setPreviewImageIndex(0);
+      setCoordinates(null);
+      setGeocodingStatus('idle');
       loadProperties();
+      loadExternalConstructions();
     } catch (error: any) {
       toast.error(error.message || 'Errore durante il caricamento');
     } finally {
@@ -210,6 +284,39 @@ export default function Dashboard() {
       toast.error(error.message || 'Errore durante l\'eliminazione');
     }
   };
+
+  const handleDeleteExternal = async (id: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questo cantiere esterno?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('external_constructions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Cantiere esterno eliminato con successo');
+      loadExternalConstructions();
+    } catch (error: any) {
+      toast.error(error.message || 'Errore durante l\'eliminazione');
+    }
+  };
+
+  const openInGoogleMaps = (address: string, lat?: number, lng?: number) => {
+    if (lat && lng) {
+      window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    }
+  };
+
+  const filteredProperties = properties.filter(p => {
+    if (filterType === 'all') return true;
+    if (filterType === 'constructions') return p.is_construction;
+    if (filterType === 'investments') return p.is_investment;
+    return !p.is_construction && !p.is_investment;
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -350,13 +457,51 @@ export default function Dashboard() {
 
                   <div className="space-y-2">
                     <Label htmlFor="address">Indirizzo *</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      required
-                      placeholder="Via Roma 123, Milano"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        required
+                        placeholder="Via Roma 123, Milano"
+                        className="flex-1"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon"
+                        onClick={handleGeocodeAddress}
+                        disabled={geocodingStatus === 'loading' || !formData.address}
+                        title="Cerca coordinate su mappa"
+                      >
+                        {geocodingStatus === 'loading' ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {geocodingStatus === 'success' && coordinates && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <MapPin className="h-4 w-4" />
+                        <span>Coordinate trovate: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => openInGoogleMaps(formData.address, coordinates.lat, coordinates.lng)}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Vedi su Maps
+                        </Button>
+                      </div>
+                    )}
+                    {geocodingStatus === 'error' && (
+                      <p className="text-sm text-amber-600">
+                        ⚠️ Coordinate non trovate. L'immobile verrà salvato senza posizione sulla mappa.
+                      </p>
+                    )}
                   </div>
 
                   {formData.external_url && (
@@ -474,42 +619,152 @@ export default function Dashboard() {
             {/* Properties List */}
             <Card className="shadow-elegant">
               <CardHeader>
-                <CardTitle>Immobili Caricati</CardTitle>
-                <CardDescription>
-                  {properties.length} immobili nel database
-                </CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>Gestione Immobili</CardTitle>
+                    <CardDescription>
+                      {properties.length} immobili + {externalConstructions.length} cantieri esterni
+                    </CardDescription>
+                  </div>
+                  <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filtra per tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tutti</SelectItem>
+                      <SelectItem value="properties">Solo Immobili</SelectItem>
+                      <SelectItem value="constructions">Solo Cantieri</SelectItem>
+                      <SelectItem value="investments">Solo Investimenti</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                  {properties.map((property) => (
-                    <div
-                      key={property.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{property.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          €{property.price.toLocaleString()} • {property.surface_area}m² • {property.rooms} vani
+                <Tabs defaultValue="properties" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="properties" className="gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Immobili ({filteredProperties.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="external" className="gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Cantieri Esterni ({externalConstructions.length})
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="properties">
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                      {filteredProperties.map((property) => (
+                        <div
+                          key={property.id}
+                          className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold">{property.title}</h3>
+                              {property.is_construction && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                  <Building2 className="h-3 w-3 mr-1" />
+                                  Cantiere
+                                </Badge>
+                              )}
+                              {property.is_investment && (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                  <TrendingUp className="h-3 w-3 mr-1" />
+                                  Investimento
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              €{property.price.toLocaleString()} • {property.surface_area}m² • {property.rooms} vani
+                              {property.floor !== null && ` • Piano ${property.floor}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                              <span>{new Date(property.created_at).toLocaleDateString('it-IT')}</span>
+                              {property.latitude && property.longitude && (
+                                <span className="text-green-600 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  Geolocalizzato
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openInGoogleMaps(property.address, property.latitude, property.longitude)}
+                              title="Apri su Google Maps"
+                            >
+                              <MapPin className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(property.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {filteredProperties.length === 0 && (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nessun immobile trovato
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(property.created_at).toLocaleDateString('it-IT')}
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(property.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      )}
                     </div>
-                  ))}
-                  {properties.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">
-                      Nessun immobile caricato
-                    </p>
-                  )}
-                </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="external">
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                      {externalConstructions.map((construction) => (
+                        <div
+                          key={construction.id}
+                          className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold">{construction.title}</h3>
+                              <Badge variant="outline" className="text-xs">
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Esterno
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate max-w-[250px]">
+                              {construction.address}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(construction.created_at).toLocaleDateString('it-IT')}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(construction.external_url, '_blank')}
+                              title="Apri link esterno"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteExternal(construction.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {externalConstructions.length === 0 && (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nessun cantiere esterno caricato
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
