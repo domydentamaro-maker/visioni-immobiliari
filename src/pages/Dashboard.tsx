@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Loader2, Upload, X, Trash2, LogOut, User, MapPin, ExternalLink, Building2, TrendingUp, Eye, EyeOff, Search } from 'lucide-react';
+import { Loader2, Upload, X, Trash2, LogOut, User, MapPin, ExternalLink, Building2, TrendingUp, Eye, EyeOff, Search, Pencil } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -73,6 +73,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('add');
   const [filterType, setFilterType] = useState<'all' | 'properties' | 'constructions' | 'investments'>('all');
   const { user, signOut } = useAuth();
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [editingExternal, setEditingExternal] = useState<ExternalConstruction | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -136,8 +138,11 @@ export default function Dashboard() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImages(Array.from(e.target.files));
-      setPreviewImageIndex(0); // Reset preview to first image
+      const newFiles = Array.from(e.target.files);
+      setImages(prev => [...prev, ...newFiles]);
+      if (images.length === 0) {
+        setPreviewImageIndex(0);
+      }
     }
   };
 
@@ -157,8 +162,94 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
+      // UPDATE EXISTING EXTERNAL CONSTRUCTION
+      if (editingExternal) {
+        const { error: updateError } = await supabase
+          .from('external_constructions')
+          .update({
+            title: formData.title,
+            description: formData.description || '',
+            address: formData.address,
+            external_url: formData.external_url,
+            image_url: formData.image_url || null,
+          })
+          .eq('id', editingExternal.id);
+
+        if (updateError) throw updateError;
+        toast.success('Cantiere esterno aggiornato con successo!');
+        cancelEdit();
+        loadExternalConstructions();
+        setLoading(false);
+        return;
+      }
+
+      // UPDATE EXISTING PROPERTY
+      if (editingProperty) {
+        const { error: updateError } = await supabase
+          .from('properties')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price) || 0,
+            surface_area: parseFloat(formData.surface_area) || 0,
+            rooms: parseInt(formData.rooms) || 0,
+            floor: formData.floor ? parseInt(formData.floor) : null,
+            address: formData.address,
+            latitude: coordinates?.lat || null,
+            longitude: coordinates?.lng || null,
+            is_construction: formData.is_construction,
+            is_investment: formData.is_investment,
+          })
+          .eq('id', editingProperty.id);
+
+        if (updateError) throw updateError;
+
+        // Upload new images if any
+        if (images.length > 0) {
+          for (let i = 0; i < images.length; i++) {
+            const file = images[i];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${editingProperty.id}-${Date.now()}-${i}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('property-images')
+              .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('property-images')
+              .getPublicUrl(filePath);
+
+            // Get current max display_order
+            const { data: existingImages } = await supabase
+              .from('property_images')
+              .select('display_order')
+              .eq('property_id', editingProperty.id)
+              .order('display_order', { ascending: false })
+              .limit(1);
+
+            const nextOrder = (existingImages?.[0]?.display_order ?? -1) + 1;
+
+            await supabase.from('property_images').insert({
+              property_id: editingProperty.id,
+              image_url: publicUrl,
+              display_order: nextOrder + i,
+              is_preview: false,
+            });
+          }
+        }
+
+        toast.success('Immobile aggiornato con successo!');
+        cancelEdit();
+        loadProperties();
+        setLoading(false);
+        return;
+      }
+
+      // INSERT NEW EXTERNAL CONSTRUCTION
       if (formData.external_url && formData.external_url.length > 0) {
-        // Insert external construction
         const { error: externalError } = await supabase
           .from('external_constructions')
           .insert({
@@ -178,7 +269,7 @@ export default function Dashboard() {
 
         toast.success('Cantiere esterno aggiunto con successo!');
       } else {
-        // Insert property with coordinates
+        // INSERT NEW PROPERTY
         const { data: property, error: propertyError } = await supabase
           .from('properties')
           .insert({
@@ -224,7 +315,7 @@ export default function Dashboard() {
               property_id: property.id,
               image_url: publicUrl,
               display_order: i,
-              is_preview: i === previewImageIndex, // Set preview flag
+              is_preview: i === previewImageIndex,
             });
           }
         }
@@ -303,6 +394,68 @@ export default function Dashboard() {
     }
   };
 
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property);
+    setEditingExternal(null);
+    setFormData({
+      title: property.title,
+      description: property.description || '',
+      price: property.price?.toString() || '',
+      surface_area: property.surface_area?.toString() || '',
+      rooms: property.rooms?.toString() || '',
+      floor: property.floor?.toString() || '',
+      address: property.address || '',
+      is_construction: property.is_construction || false,
+      is_investment: property.is_investment || false,
+      external_url: '',
+      image_url: '',
+    });
+    if (property.latitude && property.longitude) {
+      setCoordinates({ lat: property.latitude, lng: property.longitude });
+      setGeocodingStatus('success');
+    }
+  };
+
+  const handleEditExternal = (construction: ExternalConstruction) => {
+    setEditingExternal(construction);
+    setEditingProperty(null);
+    setFormData({
+      title: construction.title,
+      description: construction.description || '',
+      price: '',
+      surface_area: '',
+      rooms: '',
+      floor: '',
+      address: construction.address || '',
+      is_construction: true,
+      is_investment: false,
+      external_url: construction.external_url || '',
+      image_url: construction.image_url || '',
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingProperty(null);
+    setEditingExternal(null);
+    setFormData({
+      title: '',
+      description: '',
+      price: '',
+      surface_area: '',
+      rooms: '',
+      floor: '',
+      address: '',
+      is_construction: false,
+      is_investment: false,
+      external_url: '',
+      image_url: '',
+    });
+    setImages([]);
+    setPreviewImageIndex(0);
+    setCoordinates(null);
+    setGeocodingStatus('idle');
+  };
+
   const openInGoogleMaps = (address: string, lat?: number, lng?: number) => {
     if (lat && lng) {
       window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
@@ -352,10 +505,20 @@ export default function Dashboard() {
             {/* Form */}
             <Card className="shadow-elegant">
               <CardHeader>
-                <CardTitle>Carica Nuovo Immobile o Cantiere</CardTitle>
+                <CardTitle>
+                  {editingProperty ? 'Modifica Immobile' : editingExternal ? 'Modifica Cantiere Esterno' : 'Carica Nuovo Immobile o Cantiere'}
+                </CardTitle>
                 <CardDescription>
-                  Compila i campi per aggiungere un immobile o un cantiere esterno
+                  {editingProperty || editingExternal 
+                    ? 'Modifica i campi e salva le modifiche' 
+                    : 'Compila i campi per aggiungere un immobile o un cantiere esterno'}
                 </CardDescription>
+                {(editingProperty || editingExternal) && (
+                  <Button variant="outline" size="sm" onClick={cancelEdit} className="mt-2 w-fit">
+                    <X className="h-4 w-4 mr-2" />
+                    Annulla modifica
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
