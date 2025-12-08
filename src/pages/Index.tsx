@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, Home, Award, Users, ArrowRight, Star, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,27 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
 import PropertyMap from "@/components/PropertyMap";
+import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/hero-home.jpg";
-import property1 from "@/assets/property-1.jpg";
-import property2 from "@/assets/property-2.jpg";
-import property3 from "@/assets/property-3.jpg";
 import cantieriHero from "@/assets/cantieri-hero.jpg";
 import investimentiHero from "@/assets/investimenti-hero.jpg";
+
+interface Property {
+  id: number;
+  title: string;
+  price: number;
+  surface_area: number;
+  rooms: number;
+  floor: string;
+  description: string;
+  images?: { image_url: string }[];
+  external_url?: string;
+  image_url?: string;
+}
+
 const Index = () => {
+  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
+
   useEffect(() => {
     // Track page view
     if (window.dataLayer) {
@@ -24,38 +38,61 @@ const Index = () => {
         page: '/'
       });
     }
+    
+    // Load properties from database
+    loadFeaturedProperties();
   }, []);
-  const featuredProperties = [{
-    id: 1,
-    title: "Appartamento Moderno Centro Città",
-    price: "€450.000",
-    location: "Milano Centro",
-    beds: 3,
-    baths: 2,
-    area: 120,
-    image: property1,
-    type: "Vendita"
-  }, {
-    id: 2,
-    title: "Villa Contemporanea con Piscina",
-    price: "€1.200.000",
-    location: "Como",
-    beds: 5,
-    baths: 4,
-    area: 350,
-    image: property2,
-    type: "Vendita"
-  }, {
-    id: 3,
-    title: "Attico con Terrazza Panoramica",
-    price: "€2.800/mese",
-    location: "Milano, Porta Nuova",
-    beds: 2,
-    baths: 2,
-    area: 95,
-    image: property3,
-    type: "Affitto"
-  }];
+
+  const loadFeaturedProperties = async () => {
+    try {
+      // Load regular properties
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
+        .select(`
+          id,
+          title,
+          price,
+          surface_area,
+          rooms,
+          floor,
+          description,
+          images:property_images(image_url)
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      // Load external constructions
+      const { data: externalData, error: externalError } = await supabase
+        .from('external_constructions')
+        .select('id, title, description, external_url, image_url')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const allProperties = [];
+
+      if (!propertiesError && propertiesData) {
+        allProperties.push(...propertiesData);
+      }
+
+      if (!externalError && externalData) {
+        // Add external constructions with default values
+        allProperties.push(...externalData.map(ext => ({
+          ...ext,
+          price: 0,
+          surface_area: 0,
+          rooms: 0,
+          floor: '',
+          images: []
+        })));
+      }
+
+      setFeaturedProperties(allProperties.slice(0, 3));
+    } catch (error) {
+      console.error('Error loading featured properties:', error);
+    }
+  };
   const testimonials = [{
     name: "Marco Rossi",
     text: "Professionalità e competenza eccezionali. Hanno trovato la casa perfetta per la mia famiglia in tempi record.",
@@ -199,7 +236,63 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {featuredProperties.map(property => <PropertyCard key={property.id} {...property} />)}
+            {featuredProperties.map(property => {
+              // Check if it's an external construction
+              if (property.external_url) {
+                return (
+                  <a 
+                    key={property.id}
+                    href={property.external_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block"
+                  >
+                    <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                      <div className="relative aspect-video overflow-hidden">
+                        <img 
+                          src={property.image_url || property.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'} 
+                          alt={property.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-4 right-4 bg-accent text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          Cantiere
+                        </div>
+                      </div>
+                      <CardContent className="p-6">
+                        <h3 className="text-xl font-bold mb-2 group-hover:text-accent transition-colors">
+                          {property.title}
+                        </h3>
+                        {property.description && (
+                          <p className="text-muted-foreground line-clamp-2 mb-4">
+                            {property.description}
+                          </p>
+                        )}
+                        <div className="flex items-center text-accent font-semibold">
+                          <span>Visita il sito</span>
+                          <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </a>
+                );
+              }
+              
+              // Regular property
+              return (
+                <PropertyCard 
+                  key={property.id} 
+                  id={property.id}
+                  title={property.title}
+                  price={`€${property.price.toLocaleString()}`}
+                  location={property.floor || ''}
+                  beds={property.rooms}
+                  baths={2}
+                  area={property.surface_area}
+                  image={property.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'}
+                  type="Vendita"
+                />
+              );
+            })}
           </div>
           
           <div className="text-center">

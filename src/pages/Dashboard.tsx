@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Loader2, Upload, X, Trash2 } from 'lucide-react';
+import { Loader2, Upload, X, Trash2, LogOut, User, MapPin, ExternalLink, Building2, TrendingUp, Eye, EyeOff, Search, Pencil } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Property {
   id: string;
@@ -18,16 +23,58 @@ interface Property {
   surface_area: number;
   rooms: number;
   floor: number | null;
-  latitude: number;
-  longitude: number;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  is_construction: boolean;
+  is_investment: boolean;
   status: string;
   created_at: string;
 }
 
+interface ExternalConstruction {
+  id: string;
+  title: string;
+  description: string;
+  address: string;
+  external_url: string;
+  image_url?: string;
+  created_at: string;
+}
+
+// Geocoding function using Nominatim (free, no API key needed)
+const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+};
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [externalConstructions, setExternalConstructions] = useState<ExternalConstruction[]>([]);
   const [images, setImages] = useState<File[]>([]);
+  const [previewImageIndex, setPreviewImageIndex] = useState<number>(0);
+  const [geocodingStatus, setGeocodingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [activeTab, setActiveTab] = useState('add');
+  const [filterType, setFilterType] = useState<'all' | 'properties' | 'constructions' | 'investments'>('all');
+  const { user, signOut } = useAuth();
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [editingExternal, setEditingExternal] = useState<ExternalConstruction | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -35,12 +82,16 @@ export default function Dashboard() {
     surface_area: '',
     rooms: '',
     floor: '',
-    latitude: '',
-    longitude: '',
+    address: '',
+    is_construction: false,
+    is_investment: false,
+    external_url: '',
+    image_url: '',
   });
 
   useEffect(() => {
     loadProperties();
+    loadExternalConstructions();
   }, []);
 
   const loadProperties = async () => {
@@ -54,14 +105,56 @@ export default function Dashboard() {
     }
   };
 
+  const loadExternalConstructions = async () => {
+    const { data, error } = await supabase
+      .from('external_constructions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setExternalConstructions(data);
+    }
+  };
+
+  // Geocode address when it changes
+  const handleGeocodeAddress = useCallback(async () => {
+    if (!formData.address || formData.address.length < 5) {
+      setCoordinates(null);
+      setGeocodingStatus('idle');
+      return;
+    }
+    
+    setGeocodingStatus('loading');
+    const result = await geocodeAddress(formData.address);
+    
+    if (result) {
+      setCoordinates(result);
+      setGeocodingStatus('success');
+    } else {
+      setCoordinates(null);
+      setGeocodingStatus('error');
+    }
+  }, [formData.address]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImages(Array.from(e.target.files));
+      const newFiles = Array.from(e.target.files);
+      setImages(prev => [...prev, ...newFiles]);
+      if (images.length === 0) {
+        setPreviewImageIndex(0);
+      }
     }
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+    // Adjust preview index if needed
+    if (previewImageIndex >= newImages.length && newImages.length > 0) {
+      setPreviewImageIndex(newImages.length - 1);
+    } else if (newImages.length === 0) {
+      setPreviewImageIndex(0);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,60 +162,174 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
-      // Insert property
-      const { data: property, error: propertyError } = await supabase
-        .from('properties')
-        .insert({
-          title: formData.title,
-          description: formData.description,
-          price: parseFloat(formData.price),
-          surface_area: parseFloat(formData.surface_area),
-          rooms: parseInt(formData.rooms),
-          floor: formData.floor ? parseInt(formData.floor) : null,
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
-        })
-        .select()
-        .single();
+      // UPDATE EXISTING EXTERNAL CONSTRUCTION
+      if (editingExternal) {
+        const { error: updateError } = await supabase
+          .from('external_constructions')
+          .update({
+            title: formData.title,
+            description: formData.description || '',
+            address: formData.address,
+            external_url: formData.external_url,
+            image_url: formData.image_url || null,
+          })
+          .eq('id', editingExternal.id);
 
-      if (propertyError) throw propertyError;
+        if (updateError) throw updateError;
+        toast.success('Cantiere esterno aggiornato con successo!');
+        cancelEdit();
+        loadExternalConstructions();
+        setLoading(false);
+        return;
+      }
 
-      // Upload images
-      if (images.length > 0 && property) {
-        for (let i = 0; i < images.length; i++) {
-          const file = images[i];
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${property.id}-${Date.now()}-${i}.${fileExt}`;
-          const filePath = `${fileName}`;
+      // UPDATE EXISTING PROPERTY
+      if (editingProperty) {
+        const { error: updateError } = await supabase
+          .from('properties')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price) || 0,
+            surface_area: parseFloat(formData.surface_area) || 0,
+            rooms: parseInt(formData.rooms) || 0,
+            floor: formData.floor ? parseInt(formData.floor) : null,
+            address: formData.address,
+            latitude: coordinates?.lat || null,
+            longitude: coordinates?.lng || null,
+            is_construction: formData.is_construction,
+            is_investment: formData.is_investment,
+          })
+          .eq('id', editingProperty.id);
 
-          const { error: uploadError } = await supabase.storage
-            .from('property-images')
-            .upload(filePath, file);
+        if (updateError) throw updateError;
 
-          if (uploadError) throw uploadError;
+        // Upload new images if any
+        if (images.length > 0) {
+          for (let i = 0; i < images.length; i++) {
+            const file = images[i];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${editingProperty.id}-${Date.now()}-${i}.${fileExt}`;
+            const filePath = `${fileName}`;
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('property-images')
-            .getPublicUrl(filePath);
+            const { error: uploadError } = await supabase.storage
+              .from('property-images')
+              .upload(filePath, file);
 
-          await supabase.from('property_images').insert({
-            property_id: property.id,
-            image_url: publicUrl,
-            display_order: i,
-          });
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('property-images')
+              .getPublicUrl(filePath);
+
+            // Get current max display_order
+            const { data: existingImages } = await supabase
+              .from('property_images')
+              .select('display_order')
+              .eq('property_id', editingProperty.id)
+              .order('display_order', { ascending: false })
+              .limit(1);
+
+            const nextOrder = (existingImages?.[0]?.display_order ?? -1) + 1;
+
+            await supabase.from('property_images').insert({
+              property_id: editingProperty.id,
+              image_url: publicUrl,
+              display_order: nextOrder + i,
+              is_preview: false,
+            });
+          }
         }
+
+        toast.success('Immobile aggiornato con successo!');
+        cancelEdit();
+        loadProperties();
+        setLoading(false);
+        return;
+      }
+
+      // INSERT NEW EXTERNAL CONSTRUCTION
+      if (formData.external_url && formData.external_url.length > 0) {
+        const { error: externalError } = await supabase
+          .from('external_constructions')
+          .insert({
+            title: formData.title,
+            description: formData.description || '',
+            address: formData.address,
+            external_url: formData.external_url,
+            image_url: formData.image_url || null,
+            is_construction: true,
+            is_investment: false,
+          });
+
+        if (externalError) {
+          console.error('External construction error:', externalError);
+          throw externalError;
+        }
+
+        toast.success('Cantiere esterno aggiunto con successo!');
+      } else {
+        // INSERT NEW PROPERTY
+        const { data: property, error: propertyError } = await supabase
+          .from('properties')
+          .insert({
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price) || 0,
+            surface_area: parseFloat(formData.surface_area) || 0,
+            rooms: parseInt(formData.rooms) || 0,
+            floor: formData.floor ? parseInt(formData.floor) : null,
+            address: formData.address,
+            latitude: coordinates?.lat || null,
+            longitude: coordinates?.lng || null,
+            is_construction: formData.is_construction,
+            is_investment: formData.is_investment,
+          })
+          .select()
+          .single();
+
+        if (propertyError) {
+          console.error('Property error:', propertyError);
+          throw propertyError;
+        }
+
+        // Upload images
+        if (images.length > 0 && property) {
+          for (let i = 0; i < images.length; i++) {
+            const file = images[i];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${property.id}-${Date.now()}-${i}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('property-images')
+              .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('property-images')
+              .getPublicUrl(filePath);
+
+            await supabase.from('property_images').insert({
+              property_id: property.id,
+              image_url: publicUrl,
+              display_order: i,
+              is_preview: i === previewImageIndex,
+            });
+          }
+        }
+
+        toast.success('Immobile aggiunto con successo!');
       }
 
       // Track event
       if (window.dataLayer) {
         window.dataLayer.push({
-          event: 'immobilecaricato',
-          propertyId: property.id,
-          propertyTitle: property.title,
+          event: formData.external_url ? 'cantiereesternocaricato' : 'immobilecaricato',
+          title: formData.title,
         });
       }
-
-      toast.success('Immobile caricato con successo!');
       
       // Reset form
       setFormData({
@@ -132,11 +339,18 @@ export default function Dashboard() {
         surface_area: '',
         rooms: '',
         floor: '',
-        latitude: '',
-        longitude: '',
+        address: '',
+        is_construction: false,
+        is_investment: false,
+        external_url: '',
+        image_url: '',
       });
       setImages([]);
+      setPreviewImageIndex(0);
+      setCoordinates(null);
+      setGeocodingStatus('idle');
       loadProperties();
+      loadExternalConstructions();
     } catch (error: any) {
       toast.error(error.message || 'Errore durante il caricamento');
     } finally {
@@ -162,15 +376,128 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteExternal = async (id: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questo cantiere esterno?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('external_constructions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Cantiere esterno eliminato con successo');
+      loadExternalConstructions();
+    } catch (error: any) {
+      toast.error(error.message || 'Errore durante l\'eliminazione');
+    }
+  };
+
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property);
+    setEditingExternal(null);
+    setFormData({
+      title: property.title,
+      description: property.description || '',
+      price: property.price?.toString() || '',
+      surface_area: property.surface_area?.toString() || '',
+      rooms: property.rooms?.toString() || '',
+      floor: property.floor?.toString() || '',
+      address: property.address || '',
+      is_construction: property.is_construction || false,
+      is_investment: property.is_investment || false,
+      external_url: '',
+      image_url: '',
+    });
+    if (property.latitude && property.longitude) {
+      setCoordinates({ lat: property.latitude, lng: property.longitude });
+      setGeocodingStatus('success');
+    }
+  };
+
+  const handleEditExternal = (construction: ExternalConstruction) => {
+    setEditingExternal(construction);
+    setEditingProperty(null);
+    setFormData({
+      title: construction.title,
+      description: construction.description || '',
+      price: '',
+      surface_area: '',
+      rooms: '',
+      floor: '',
+      address: construction.address || '',
+      is_construction: true,
+      is_investment: false,
+      external_url: construction.external_url || '',
+      image_url: construction.image_url || '',
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingProperty(null);
+    setEditingExternal(null);
+    setFormData({
+      title: '',
+      description: '',
+      price: '',
+      surface_area: '',
+      rooms: '',
+      floor: '',
+      address: '',
+      is_construction: false,
+      is_investment: false,
+      external_url: '',
+      image_url: '',
+    });
+    setImages([]);
+    setPreviewImageIndex(0);
+    setCoordinates(null);
+    setGeocodingStatus('idle');
+  };
+
+  const openInGoogleMaps = (address: string, lat?: number, lng?: number) => {
+    if (lat && lng) {
+      window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    }
+  };
+
+  const filteredProperties = properties.filter(p => {
+    if (filterType === 'all') return true;
+    if (filterType === 'constructions') return p.is_construction;
+    if (filterType === 'investments') return p.is_investment;
+    return !p.is_construction && !p.is_investment;
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow py-12 px-4 bg-gradient-subtle">
         <div className="container mx-auto max-w-6xl">
-          <div className="mb-8 flex justify-between items-center">
-            <h1 className="text-4xl font-display font-bold">Dashboard Admin</h1>
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-4xl font-display font-bold">Dashboard Admin</h1>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg border border-primary/20">
+                  <User className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">{user?.email}</span>
+                  <Badge variant="default" className="ml-2">Loggato</Badge>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={signOut}
+                  className="gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Esci
+                </Button>
+              </div>
+            </div>
             <div className="text-sm text-muted-foreground opacity-30 select-none">
-              2D Sviluppo Immobiliare
+              2D Sviluppo Immobiliare - Sezione Privata
             </div>
           </div>
 
@@ -178,13 +505,43 @@ export default function Dashboard() {
             {/* Form */}
             <Card className="shadow-elegant">
               <CardHeader>
-                <CardTitle>Carica Nuovo Immobile</CardTitle>
+                <CardTitle>
+                  {editingProperty ? 'Modifica Immobile' : editingExternal ? 'Modifica Cantiere Esterno' : 'Carica Nuovo Immobile o Cantiere'}
+                </CardTitle>
                 <CardDescription>
-                  Compila tutti i campi per aggiungere un nuovo immobile
+                  {editingProperty || editingExternal 
+                    ? 'Modifica i campi e salva le modifiche' 
+                    : 'Compila i campi per aggiungere un immobile o un cantiere esterno'}
                 </CardDescription>
+                {(editingProperty || editingExternal) && (
+                  <Button variant="outline" size="sm" onClick={cancelEdit} className="mt-2 w-fit">
+                    <X className="h-4 w-4 mr-2" />
+                    Annulla modifica
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* External Link Field */}
+                  <div className="space-y-2 p-4 bg-muted rounded-lg">
+                    <Label htmlFor="external_url" className="font-semibold">
+                      Link Esterno (opzionale - per cantieri come Borgo San Nicola)
+                    </Label>
+                    <Input
+                      id="external_url"
+                      value={formData.external_url}
+                      onChange={(e) => {
+                        setFormData({ ...formData, external_url: e.target.value });
+                      }}
+                      placeholder="https://live-future-homes.com/borgo-san-nicola"
+                    />
+                    {formData.external_url && (
+                      <p className="text-sm text-muted-foreground">
+                        ✓ Modalità cantiere esterno attiva - solo titolo e indirizzo richiesti
+                      </p>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="title">Titolo *</Label>
                     <Input
@@ -197,50 +554,51 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Descrizione *</Label>
+                    <Label htmlFor="description">Descrizione {!formData.external_url && '*'}</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      required
+                      required={!formData.external_url}
                       rows={4}
                       placeholder="Descrizione dettagliata dell'immobile..."
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Prezzo (€) *</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        step="0.01"
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        required
-                        placeholder="250000"
-                      />
-                    </div>
+                  {!formData.external_url && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="price">Prezzo (€) *</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          value={formData.price}
+                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                          required
+                          placeholder="250000"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="surface_area">Superficie (m²) *</Label>
-                      <Input
-                        id="surface_area"
-                        type="number"
-                        step="0.01"
-                        value={formData.surface_area}
-                        onChange={(e) => setFormData({ ...formData, surface_area: e.target.value })}
-                        required
-                        placeholder="120"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="surface_area">Superficie (m²) *</Label>
+                        <Input
+                          id="surface_area"
+                          type="number"
+                          step="0.01"
+                          value={formData.surface_area}
+                          onChange={(e) => setFormData({ ...formData, surface_area: e.target.value })}
+                          required
+                          placeholder="120"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="rooms">Numero Vani *</Label>
-                      <Input
-                        id="rooms"
-                        type="number"
-                        value={formData.rooms}
+                      <div className="space-y-2">
+                        <Label htmlFor="rooms">Numero Vani *</Label>
+                        <Input
+                          id="rooms"
+                          type="number"
+                          value={formData.rooms}
                         onChange={(e) => setFormData({ ...formData, rooms: e.target.value })}
                         required
                         placeholder="4"
@@ -258,69 +616,154 @@ export default function Dashboard() {
                       />
                     </div>
                   </div>
+                  )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="latitude">Latitudine *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Indirizzo *</Label>
+                    <div className="flex gap-2">
                       <Input
-                        id="latitude"
-                        type="number"
-                        step="any"
-                        value={formData.latitude}
-                        onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                         required
-                        placeholder="41.9028"
+                        placeholder="Via Roma 123, Milano"
+                        className="flex-1"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon"
+                        onClick={handleGeocodeAddress}
+                        disabled={geocodingStatus === 'loading' || !formData.address}
+                        title="Cerca coordinate su mappa"
+                      >
+                        {geocodingStatus === 'loading' ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {geocodingStatus === 'success' && coordinates && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <MapPin className="h-4 w-4" />
+                        <span>Coordinate trovate: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => openInGoogleMaps(formData.address, coordinates.lat, coordinates.lng)}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Vedi su Maps
+                        </Button>
+                      </div>
+                    )}
+                    {geocodingStatus === 'error' && (
+                      <p className="text-sm text-amber-600">
+                        ⚠️ Coordinate non trovate. L'immobile verrà salvato senza posizione sulla mappa.
+                      </p>
+                    )}
+                  </div>
+
+                  {formData.external_url && (
+                    <div className="space-y-2">
+                      <Label htmlFor="image_url">URL Immagine Anteprima (opzionale)</Label>
+                      <Input
+                        id="image_url"
+                        value={formData.image_url}
+                        onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                        placeholder="https://images.unsplash.com/photo-..."
                       />
                     </div>
+                  )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="longitude">Longitudine *</Label>
-                      <Input
-                        id="longitude"
-                        type="number"
-                        step="any"
-                        value={formData.longitude}
-                        onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                        required
-                        placeholder="12.4964"
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="is_construction"
+                        checked={formData.is_construction}
+                        onChange={(e) => setFormData({ ...formData, is_construction: e.target.checked })}
+                        className="h-4 w-4 rounded border-gray-300"
                       />
+                      <Label htmlFor="is_construction" className="cursor-pointer">
+                        È un cantiere (bandierina verde)
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="is_investment"
+                        checked={formData.is_investment}
+                        onChange={(e) => setFormData({ ...formData, is_investment: e.target.checked })}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <Label htmlFor="is_investment" className="cursor-pointer">
+                        È un investimento (bandierina blu)
+                      </Label>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="images">Immagini</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="images"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        onChange={handleImageChange}
-                        className="flex-1"
-                      />
-                      <Upload className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    {images.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        {images.map((img, idx) => (
-                          <div key={idx} className="relative group">
-                            <img
-                              src={URL.createObjectURL(img)}
-                              alt={`Preview ${idx + 1}`}
-                              className="w-full h-20 object-cover rounded"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="absolute top-1 right-1 bg-destructive text-destructive-foreground p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                  {!formData.external_url && (
+                    <div className="space-y-2">
+                      <Label htmlFor="images">Immagini</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="images"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          multiple
+                          onChange={handleImageChange}
+                          className="flex-1"
+                        />
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      {images.length > 0 && (
+                      <div className="space-y-2 mt-2">
+                        <Label className="text-sm text-muted-foreground">
+                          Seleziona l'immagine di anteprima:
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {images.map((img, idx) => (
+                            <div 
+                              key={idx} 
+                              className={`relative group cursor-pointer border-2 rounded ${
+                                previewImageIndex === idx 
+                                  ? 'border-accent ring-2 ring-accent/50' 
+                                  : 'border-transparent hover:border-accent/50'
+                              }`}
+                              onClick={() => setPreviewImageIndex(idx)}
                             >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
+                              <img
+                                src={URL.createObjectURL(img)}
+                                alt={`Preview ${idx + 1}`}
+                                className="w-full h-20 object-cover rounded"
+                              />
+                              {previewImageIndex === idx && (
+                                <div className="absolute top-1 left-1 bg-accent text-white px-2 py-0.5 rounded text-xs font-semibold">
+                                  Anteprima
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeImage(idx);
+                                }}
+                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
+                  )}
 
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? (
@@ -329,7 +772,7 @@ export default function Dashboard() {
                         Caricamento...
                       </>
                     ) : (
-                      'Carica Immobile'
+                      formData.external_url ? 'Carica Cantiere Esterno' : 'Carica Immobile'
                     )}
                   </Button>
                 </form>
@@ -339,42 +782,152 @@ export default function Dashboard() {
             {/* Properties List */}
             <Card className="shadow-elegant">
               <CardHeader>
-                <CardTitle>Immobili Caricati</CardTitle>
-                <CardDescription>
-                  {properties.length} immobili nel database
-                </CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>Gestione Immobili</CardTitle>
+                    <CardDescription>
+                      {properties.length} immobili + {externalConstructions.length} cantieri esterni
+                    </CardDescription>
+                  </div>
+                  <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filtra per tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tutti</SelectItem>
+                      <SelectItem value="properties">Solo Immobili</SelectItem>
+                      <SelectItem value="constructions">Solo Cantieri</SelectItem>
+                      <SelectItem value="investments">Solo Investimenti</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                  {properties.map((property) => (
-                    <div
-                      key={property.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{property.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          €{property.price.toLocaleString()} • {property.surface_area}m² • {property.rooms} vani
+                <Tabs defaultValue="properties" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="properties" className="gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Immobili ({filteredProperties.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="external" className="gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Cantieri Esterni ({externalConstructions.length})
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="properties">
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                      {filteredProperties.map((property) => (
+                        <div
+                          key={property.id}
+                          className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold">{property.title}</h3>
+                              {property.is_construction && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                  <Building2 className="h-3 w-3 mr-1" />
+                                  Cantiere
+                                </Badge>
+                              )}
+                              {property.is_investment && (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                  <TrendingUp className="h-3 w-3 mr-1" />
+                                  Investimento
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              €{property.price.toLocaleString()} • {property.surface_area}m² • {property.rooms} vani
+                              {property.floor !== null && ` • Piano ${property.floor}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                              <span>{new Date(property.created_at).toLocaleDateString('it-IT')}</span>
+                              {property.latitude && property.longitude && (
+                                <span className="text-green-600 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  Geolocalizzato
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openInGoogleMaps(property.address, property.latitude, property.longitude)}
+                              title="Apri su Google Maps"
+                            >
+                              <MapPin className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(property.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {filteredProperties.length === 0 && (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nessun immobile trovato
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(property.created_at).toLocaleDateString('it-IT')}
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(property.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      )}
                     </div>
-                  ))}
-                  {properties.length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">
-                      Nessun immobile caricato
-                    </p>
-                  )}
-                </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="external">
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                      {externalConstructions.map((construction) => (
+                        <div
+                          key={construction.id}
+                          className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold">{construction.title}</h3>
+                              <Badge variant="outline" className="text-xs">
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Esterno
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate max-w-[250px]">
+                              {construction.address}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(construction.created_at).toLocaleDateString('it-IT')}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(construction.external_url, '_blank')}
+                              title="Apri link esterno"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteExternal(construction.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {externalConstructions.length === 0 && (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nessun cantiere esterno caricato
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
