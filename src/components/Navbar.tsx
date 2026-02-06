@@ -24,7 +24,6 @@ const Navbar = () => {
     { path: "/investimenti", label: "Investimenti" },
     { path: "/servizi", label: "Servizi" },
     { path: "/contatti", label: "Contatti" },
-    { path: "/dashboard", label: "Dashboard" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -35,7 +34,6 @@ const Navbar = () => {
     }`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
           <Link to="/" className="flex items-center group">
             <img 
               src={logo} 
@@ -44,7 +42,6 @@ const Navbar = () => {
             />
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
@@ -62,7 +59,6 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden p-2 text-white hover:text-accent transition-colors"
@@ -71,7 +67,6 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden py-4 animate-fade-in bg-background/95 backdrop-blur-md">
             <div className="flex flex-col gap-4">
