@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, Home, Award, Users, ArrowRight, Star, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,78 +7,70 @@ import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
-import PropertyMap from "@/components/PropertyMap";
-import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/hero-home.jpg";
 import cantieriHero from "@/assets/cantieri-hero.jpg";
 import investimentiHero from "@/assets/investimenti-hero.jpg";
+import property1 from "@/assets/property-1.jpg";
+import property2 from "@/assets/property-2.jpg";
+import property3 from "@/assets/property-3.jpg";
 
-interface Property {
-  id: string;
-  title: string;
-  price: number;
-  surface_area: number;
-  rooms: number;
-  floor: number | null;
-  description: string;
-  images?: { image_url: string }[];
-}
+const featuredProperties = [
+  {
+    id: 1,
+    title: "Appartamento Moderno Centro Città",
+    price: "€450.000",
+    location: "Milano Centro",
+    beds: 3,
+    baths: 2,
+    area: 120,
+    image: property1,
+    type: "Vendita"
+  },
+  {
+    id: 2,
+    title: "Villa Contemporanea con Piscina",
+    price: "€1.200.000",
+    location: "Como",
+    beds: 5,
+    baths: 4,
+    area: 350,
+    image: property2,
+    type: "Vendita"
+  },
+  {
+    id: 3,
+    title: "Attico con Terrazza Panoramica",
+    price: "€2.800/mese",
+    location: "Milano, Porta Nuova",
+    beds: 2,
+    baths: 2,
+    area: 95,
+    image: property3,
+    type: "Affitto"
+  }
+];
 
-const Index = () => {
-  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
-
-  useEffect(() => {
-    // Track page view
-    if (window.dataLayer) {
-      window.dataLayer.push({
-        event: 'pageview',
-        page: '/'
-      });
-    }
-    
-    // Load properties from database
-    loadFeaturedProperties();
-  }, []);
-
-  const loadFeaturedProperties = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select(`
-          id,
-          title,
-          price,
-          surface_area,
-          rooms,
-          floor,
-          description,
-          images:property_images(image_url)
-        `)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (!error && data) {
-        setFeaturedProperties(data);
-      }
-    } catch (error) {
-      console.error('Error loading featured properties:', error);
-    }
-  };
-  const testimonials = [{
+const testimonials = [
+  {
     name: "Marco Rossi",
     text: "Professionalità e competenza eccezionali. Hanno trovato la casa perfetta per la mia famiglia in tempi record.",
     rating: 5
-  }, {
+  },
+  {
     name: "Laura Bianchi",
     text: "Servizio impeccabile dall'inizio alla fine. Consiglio 2D Sviluppo a chiunque cerchi un'agenzia seria e affidabile.",
     rating: 5
-  }, {
+  },
+  {
     name: "Giuseppe Ferrari",
     text: "Esperienza fantastica! Il team è stato sempre disponibile e attento alle nostre esigenze.",
     rating: 5
-  }];
-  return <div className="min-h-screen">
+  }
+];
+
+const Index = () => {
+  return (
+    <div className="min-h-screen">
       <Navbar />
       
       {/* Hero Section */}
@@ -98,7 +89,6 @@ const Index = () => {
               Esperienza, professionalità e passione al servizio del tuo futuro
             </p>
             
-            {/* CTA */}
             <div className="mb-8">
               <p className="text-lg mb-4 opacity-95 font-medium">
                 Trova l'immobile perfetto per te in pochi click
@@ -151,20 +141,13 @@ const Index = () => {
       <section className="py-20 bg-gradient-subtle">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {/* Cantieri Card */}
             <Link to="/cantieri" className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300">
               <div className="relative h-[400px]">
-                <img 
-                  src={cantieriHero} 
-                  alt="Cantieri in corso" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                <img src={cantieriHero} alt="Cantieri in corso" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-8 text-primary-foreground">
                   <h3 className="text-3xl font-bold mb-3">Cantieri</h3>
-                  <p className="text-lg opacity-90 mb-4">
-                    Scopri i nostri progetti in costruzione e le prossime realizzazioni
-                  </p>
+                  <p className="text-lg opacity-90 mb-4">Scopri i nostri progetti in costruzione e le prossime realizzazioni</p>
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <span>Esplora i Cantieri</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
@@ -173,20 +156,13 @@ const Index = () => {
               </div>
             </Link>
 
-            {/* Investimenti Card */}
             <Link to="/investimenti" className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300">
               <div className="relative h-[400px]">
-                <img 
-                  src={investimentiHero} 
-                  alt="Investimenti immobiliari" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                <img src={investimentiHero} alt="Investimenti immobiliari" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-8 text-primary-foreground">
                   <h3 className="text-3xl font-bold mb-3">Investimenti</h3>
-                  <p className="text-lg opacity-90 mb-4">
-                    Opportunità di investimento sicure e redditizie nel settore immobiliare
-                  </p>
+                  <p className="text-lg opacity-90 mb-4">Opportunità di investimento sicure e redditizie nel settore immobiliare</p>
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <span>Scopri le Opportunità</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
@@ -210,18 +186,7 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {featuredProperties.map(property => (
-              <PropertyCard 
-                key={property.id} 
-                id={property.id}
-                title={property.title}
-                price={`€${property.price.toLocaleString()}`}
-                location={property.floor ? `Piano ${property.floor}` : ''}
-                beds={property.rooms}
-                baths={2}
-                area={property.surface_area}
-                image={property.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80'}
-                type="Vendita"
-              />
+              <PropertyCard key={property.id} {...property} />
             ))}
           </div>
           
@@ -233,19 +198,6 @@ const Index = () => {
               </Link>
             </Button>
           </div>
-        </div>
-      </section>
-
-      {/* Map Section */}
-      <section className="py-20 px-4 bg-gradient-subtle">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-display font-bold mb-4">Esplora gli Immobili sulla Mappa</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Trova la tua casa ideale visualizzando tutti i nostri immobili sulla mappa interattiva
-            </p>
-          </div>
-          <PropertyMap />
         </div>
       </section>
 
@@ -277,7 +229,6 @@ const Index = () => {
                   <p className="text-muted-foreground">Anni di Esperienza</p>
                 </CardContent>
               </Card>
-              
               <Card className="text-center hover:shadow-lg transition-shadow">
                 <CardContent className="p-8">
                   <Home className="w-12 h-12 text-accent mx-auto mb-4" />
@@ -285,7 +236,6 @@ const Index = () => {
                   <p className="text-muted-foreground">Immobili Venduti</p>
                 </CardContent>
               </Card>
-              
               <Card className="text-center hover:shadow-lg transition-shadow">
                 <CardContent className="p-8">
                   <Users className="w-12 h-12 text-accent mx-auto mb-4" />
@@ -293,7 +243,6 @@ const Index = () => {
                   <p className="text-muted-foreground">Clienti Soddisfatti</p>
                 </CardContent>
               </Card>
-              
               <Card className="text-center hover:shadow-lg transition-shadow">
                 <CardContent className="p-8">
                   <Star className="w-12 h-12 text-accent mx-auto mb-4" />
@@ -317,18 +266,22 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => <Card key={index} className="hover:shadow-lg transition-shadow">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-8">
                   <Quote className="w-10 h-10 text-accent mb-4" />
                   <div className="flex gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-accent text-accent" />)}
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-accent text-accent" />
+                    ))}
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed">
                     "{testimonial.text}"
                   </p>
                   <p className="font-semibold">{testimonial.name}</p>
                 </CardContent>
-              </Card>)}
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -352,6 +305,8 @@ const Index = () => {
       </section>
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
