@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 interface PropertyCardProps {
-  id: number;
+  id: string | number;
   title: string;
   price: string;
   location: string;
